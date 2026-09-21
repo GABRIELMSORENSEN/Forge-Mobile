@@ -1,0 +1,1 @@
+{"name":"forge-mobile","version":"1.0.0","private":true,"scripts":{"vendor":"node scripts/vendor.cjs"},"dependencies":{"libsodium":"0.7.15","libsodium-wrappers":"0.7.15"}}

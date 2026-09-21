@@ -1,0 +1,33 @@
+{
+  "config": {
+    "hub": "GABRIELMSORENSEN/Forge-Mobile",
+    "github": true,
+    "vercel": false,
+    "supabase": false,
+    "device": "SM-A356E",
+    "version": "1.0.0"
+  },
+  "github_account": "GABRIELMSORENSEN",
+  "repos_rendered": 16,
+  "gatarme_present": true,
+  "vercel": {
+    "ok": false,
+    "error": "Conecte vercel em Conexões"
+  },
+  "secrets": [
+    "CODEX_AUTH_JSON",
+    "FORGE_GITHUB_TOKEN"
+  ],
+  "encrypted_box": true,
+  "invalid_operation_rejected": true,
+  "invalid_link_rejected": true,
+  "workflows": {
+    "ok": false,
+    "error": "github HTTP 404: Not Found"
+  },
+  "screen_metrics": {
+    "width": 384,
+    "height": 832,
+    "hidden": false
+  }
+}

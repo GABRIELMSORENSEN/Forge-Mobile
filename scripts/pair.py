@@ -1,7 +1,7 @@
 """Seed the user's private hub and optionally a USB-connected debug APK.
 No credentials are written to source, command arguments, stdout or shared phone storage.
 """
-import argparse,json,os,subprocess,sys
+import argparse,json,os,subprocess,sys,urllib.request,urllib.error
 from pathlib import Path
 
 def run(args, data=None):
@@ -25,7 +25,12 @@ def main():
     if vercel.exists():
         value=json.loads(vercel.read_text(encoding='utf-8')).get('token')
         if value:
-            run(['gh','secret','set','VERCEL_TOKEN','--repo',args.repo],value.encode());bootstrap['vercel']=value
+            try:
+                with urllib.request.urlopen(urllib.request.Request('https://api.vercel.com/v9/projects?limit=1',headers={'Authorization':'Bearer '+value}),timeout=20) as response:
+                    json.load(response)
+                run(['gh','secret','set','VERCEL_TOKEN','--repo',args.repo],value.encode());bootstrap['vercel']=value
+            except urllib.error.HTTPError:
+                print('A credencial local da Vercel é inválida; conecte um token novo pelo app.')
     supabase=Path.home()/'.supabase/access-token'
     if supabase.exists():
         value=supabase.read_text().strip()

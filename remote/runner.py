@@ -24,7 +24,7 @@ def run(args, cwd=None, env=None, timeout=2400, input_text=None, stream=False):
             raise RuntimeError(f'Comando terminou com código {p.returncode}: {output[-4000:]}')
         return p.stdout
     # Capture output to disk so runaway command output cannot exhaust memory.
-    with (WORK / 'process.log').open('w+', encoding='utf-8') as f:
+    with (WORK / 'process.log').open('w+', encoding='utf-8', errors='replace') as f:
         p = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=f, stderr=subprocess.STDOUT, text=True, encoding='utf-8')
         try:
             p.communicate(input=input_text, timeout=timeout)

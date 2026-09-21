@@ -99,7 +99,14 @@ public class MainActivity extends Activity {
    case "config":return config();
    case "save":{
     if(a.has("hub")){String h=repo(a.getString("hub"));JSONObject r=new JSONObject(gh("/repos/"+h,"GET",null));if(!r.optBoolean("private"))throw new Exception("O centro de execução precisa ser privado");getSharedPreferences("settings",0).edit().putString("hub",h).commit();}
-    for(String k:new String[]{"github","vercel","supabase"})if(a.has(k))vault.put(k,a.getString(k).trim());
+    for(String k:new String[]{"github","vercel","supabase"})if(a.has(k)){
+     String value=a.getString(k).trim();
+     if(!value.isEmpty()){
+      String url=k.equals("github")?"https://api.github.com/user":k.equals("vercel")?"https://api.vercel.com/v9/projects?limit=1":"https://api.supabase.com/v1/projects";
+      HttpURLConnection check=connect(url,value,"GET",null);try{if(check.getResponseCode()!=200)throw new Exception("Credencial de "+k+" inválida ou sem acesso");}finally{check.disconnect();}
+     }
+     vault.put(k,value);
+    }
     return config();
    }
    case "logout":vault.clear();return config();
@@ -132,10 +139,18 @@ public class MainActivity extends Activity {
    }
    case "publicKey":return new JSONObject(gh(base+"/actions/secrets/public-key","GET",null));
    case "secret":{
-    String name=a.getString("name");if(!java.util.Arrays.asList("OPENAI_API_KEY","VERCEL_TOKEN","SUPABASE_ACCESS_TOKEN").contains(name))throw new Exception("Segredo não permitido");
+    String name=a.getString("name");if(!java.util.Arrays.asList("FORGE_GITHUB_TOKEN","OPENAI_API_KEY","VERCEL_TOKEN","SUPABASE_ACCESS_TOKEN").contains(name))throw new Exception("Segredo não permitido");
     return new JSONObject(gh(base+"/actions/secrets/"+name,"PUT",new JSONObject().put("encrypted_value",a.getString("encrypted_value")).put("key_id",a.getString("key_id"))));
    }
    case "secrets":return new JSONObject(gh(base+"/actions/secrets","GET",null));
+   case "setup":{
+    JSONObject r=new JSONObject(gh(base,"GET",null));if(!r.optBoolean("private"))throw new Exception("Use um centro de execução privado");
+    String path=base+"/contents/.github/workflows/remote.yml";
+    JSONObject body=new JSONObject().put("message","Enable Forge remote tasks").put("branch","main");
+    try{body.put("sha",new JSONObject(gh(path,"GET",null)).getString("sha"));}catch(Exception e){if(!e.getMessage().contains("HTTP 404"))throw e;}
+    String content=android.util.Base64.encodeToString(read(getAssets().open("remote.yml"),100000),android.util.Base64.NO_WRAP);
+    body.put("content",content);return new JSONObject(gh(path,"PUT",body));
+   }
    case "vercel":return new JSONObject(request("vercel","/v9/projects?limit=100","GET",null));
    case "supabase":return new JSONArray(request("supabase","/v1/projects","GET",null));
    case "open":{

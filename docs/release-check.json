@@ -1,0 +1,11 @@
+﻿{
+    "apk_sha256":  "61cdc1eb131084398364f758e82cc34441419b3d39b7ff2ef118d88c0eff1f8c",
+    "release":  "https://github.com/GABRIELMSORENSEN/Forge-Mobile/releases/tag/v1.0.0-preview.1",
+    "asset_id":  580090736,
+    "device":  "RQCXC015NYX",
+    "package":  "com.g4t0xx.forge",
+    "version":  "1.0.0",
+    "release_installed":  true,
+    "debuggable":  false,
+    "remote_execution_validated":  false
+}

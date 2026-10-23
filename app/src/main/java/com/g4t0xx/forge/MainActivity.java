@@ -14,24 +14,26 @@ import java.util.concurrent.Executors;
 import java.util.zip.*;
 
 public class MainActivity extends Activity {
- private WebView web; private Vault vault;
+ static java.lang.ref.WeakReference<MainActivity> current=new java.lang.ref.WeakReference<>(null);
+ private WebView web; private Vault vault;private Voice voice;private String pendingExport="";private String importKind="file";private String mediaExport="";
  private final java.util.concurrent.ExecutorService pool=Executors.newFixedThreadPool(4);
  private String pendingArtifact="";
  private static final String ORIGIN="https://forge.local/";
  @Override public void onCreate(Bundle state) {
-  super.onCreate(state); vault=new Vault(this);
+  super.onCreate(state);current=new java.lang.ref.WeakReference<>(this); vault=new Vault(this);
   if(BuildConfig.DEBUG) try {
    File bootstrap=new File(getFilesDir(),"bootstrap.json");
    if(bootstrap.exists()) {
     JSONObject b=new JSONObject(new String(java.nio.file.Files.readAllBytes(bootstrap.toPath()),StandardCharsets.UTF_8));
-    for(String k:new String[]{"github","vercel","supabase"}) if(b.has(k)) vault.put(k,b.getString(k));
+    for(String k:new String[]{"github","vercel","supabase","codex_auth","openai","pc_url","pc_token","pc_pin"}) if(b.has(k)) vault.put(k,b.getString(k));
+    if(b.has("memory")){JSONArray memories=b.getJSONArray("memory");ChatStore store=Assistant.get(this).store;for(int i=0;i<memories.length();i++){JSONObject m=memories.getJSONObject(i);store.remember(m.optString("id",java.util.UUID.randomUUID().toString()),m.getString("text"),m.optString("source","perfil-importado"));}}
     getSharedPreferences("settings",0).edit().putString("hub",b.optString("hub","GABRIELMSORENSEN/Forge-Mobile")).apply();
     if(!bootstrap.delete())throw new IOException("Falha removendo configuração inicial");
    }
   } catch(Exception e) { throw new IllegalStateException("Falha na configuração inicial",e); }
   getWindow().setStatusBarColor(0xff101917); getWindow().setNavigationBarColor(0xff101917);
-  web=new WebView(this); web.setBackgroundColor(0xff101917); setContentView(web);
-  web.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
+  web=new WebView(this); web.setBackgroundColor(0xff101917);android.widget.FrameLayout root=new android.widget.FrameLayout(this);root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));setContentView(root);
+  root.setOnApplyWindowInsetsListener((v,insets)->{int left=insets.getSystemWindowInsetLeft(),top=insets.getSystemWindowInsetTop(),right=insets.getSystemWindowInsetRight(),bottom=insets.getSystemWindowInsetBottom();if(android.os.Build.VERSION.SDK_INT>=30){android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars()|android.view.WindowInsets.Type.displayCutout());left=bars.left;top=bars.top;right=bars.right;bottom=bars.bottom;}android.widget.FrameLayout.LayoutParams layout=(android.widget.FrameLayout.LayoutParams)web.getLayoutParams();layout.setMargins(left,top,right,bottom);web.setLayoutParams(layout);return insets;});root.requestApplyInsets();
   WebSettings s=web.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true); s.setAllowFileAccess(false); s.setAllowContentAccess(false); s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
   WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
   web.addJavascriptInterface(new Bridge(),"Native");
@@ -42,6 +44,7 @@ public class MainActivity extends Activity {
     if(u.startsWith(ORIGIN)) try {
      String p=req.getUrl().getPath(); if(p.equals("/"))p="/index.html";
      if(p.contains(".."))throw new IOException();
+     if(p.startsWith("/media/")){File f=MediaStudio.get(MainActivity.this).file(p.substring(7));return new WebResourceResponse(f.getName().endsWith(".mp4")?"video/mp4":f.getName().endsWith(".webm")?"video/webm":"image/png",null,new FileInputStream(f));}
      String mime=p.endsWith(".js")?"application/javascript":p.endsWith(".css")?"text/css":"text/html";
      return new WebResourceResponse(mime,"UTF-8",getAssets().open(p.substring(1)));
     } catch(Exception ignored) {}
@@ -49,6 +52,7 @@ public class MainActivity extends Activity {
    }
   });
   web.loadUrl(ORIGIN);
+  voice=new Voice(this);
  }
  private String hub() { return getSharedPreferences("settings",0).getString("hub","GABRIELMSORENSEN/Forge-Mobile"); }
  private String repo(String r) throws Exception { if(!r.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"))throw new Exception("Repositório inválido: use dono/nome"); return r; }
@@ -94,6 +98,25 @@ public class MainActivity extends Activity {
   return new FilterInputStream(c.getInputStream()){@Override public void close()throws IOException{try{super.close();}finally{connection.disconnect();}}};
  }
  private Object execute(String op,JSONObject a)throws Exception {
+  if(op.equals("connections_save")){for(String k:new String[]{"github","vercel","supabase"})if(a.has(k))vault.put(k,a.getString(k).trim());return Json.obj("saved",true);}
+  if(op.equals("connections_info"))return Json.obj("github",!vault.get("github").isEmpty(),"vercel",!vault.get("vercel").isEmpty(),"supabase",!vault.get("supabase").isEmpty());
+  if(op.equals("media_info"))return MediaStudio.get(this).info();
+  if(op.equals("media_generate"))return MediaStudio.get(this).submit(a);
+  if(op.equals("media_install")){MediaStudio.get(this).install(a.getString("kind"));return new JSONObject().put("started",true);}
+  if(op.equals("media_stop")){MediaStudio.get(this).stop();return new JSONObject().put("stopping",true);}
+  if(op.equals("media_export")){mediaExport=a.getString("file");File f=MediaStudio.get(this).file(mediaExport);runOnUiThread(()->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType(f.getName().endsWith(".mp4")?"video/mp4":f.getName().endsWith(".webm")?"video/webm":"image/png").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,f.getName()),25));return new JSONObject();}
+  if(op.startsWith("chat_")||op.startsWith("engine_")||op.equals("workspace")||op.equals("pc_status"))return Assistant.get(this).api(op,a);
+  if(op.equals("voice_info"))return voice.info();
+  if(op.equals("account_login")){AccountLogin.begin(this,vault);return new JSONObject().put("started",true);}
+  if(op.equals("voice_listen")){voice.listen(a.optBoolean("wake"),a.optBoolean("offline",true));return new JSONObject();}
+  if(op.equals("voice_speak")){voice.speak(a.getString("text"),a.optString("voice"),(float)a.optDouble("rate",1),a.optBoolean("offline",true));return new JSONObject();}
+  if(op.equals("voice_stop")){voice.stop();return new JSONObject();}
+  if(op.equals("voice_synthesize")){voice.synthesize(a.getString("text"),a.optString("voice"));return new JSONObject().put("started",true);}
+  if(op.equals("phone_permissions")){runOnUiThread(()->requestPermissions(new String[]{android.Manifest.permission.CAMERA,android.Manifest.permission.RECORD_AUDIO},32));return new JSONObject();}
+  if(op.equals("phone_action")){if(!getSharedPreferences("assistant",0).getString("access","ask").equals("full"))throw new Exception("Escolha Acesso completo para usar os controles diretos");return PhoneTools.get(this).perform(a.getString("kind"),a.optJSONObject("args")==null?new JSONObject():a.getJSONObject("args"));}
+  if(op.equals("phone_camera")){openCamera();return new JSONObject().put("opened",true);}
+  if(op.equals("phone_import")){importKind=a.optString("kind","file");runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,22);});return new JSONObject();}
+  if(op.equals("phone_export")){pendingExport=a.optString("name","forge-memory.json");runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,pendingExport);startActivityForResult(i,23);});return new JSONObject();}
   String base="/repos/"+repo(hub());
   switch(op){
    case "config":return config();
@@ -138,10 +161,7 @@ public class MainActivity extends Activity {
     runOnUiThread(()->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.setType("application/zip");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_TITLE,"forge-"+pendingArtifact+".zip");startActivityForResult(i,21);});return new JSONObject().put("selectDestination",true);
    }
    case "publicKey":return new JSONObject(gh(base+"/actions/secrets/public-key","GET",null));
-   case "secret":{
-    String name=a.getString("name");if(!java.util.Arrays.asList("FORGE_GITHUB_TOKEN","OPENAI_API_KEY","VERCEL_TOKEN","SUPABASE_ACCESS_TOKEN").contains(name))throw new Exception("Segredo não permitido");
-    return new JSONObject(gh(base+"/actions/secrets/"+name,"PUT",new JSONObject().put("encrypted_value",a.getString("encrypted_value")).put("key_id",a.getString("key_id"))));
-   }
+   case "secret":throw new Exception("Credenciais pessoais ficam apenas neste aparelho. Publicação de segredos desativada.");
    case "secrets":return new JSONObject(gh(base+"/actions/secrets","GET",null));
    case "setup":{
     JSONObject r=new JSONObject(gh(base,"GET",null));if(!r.optBoolean("private"))throw new Exception("Use um centro de execução privado");
@@ -173,11 +193,19 @@ public class MainActivity extends Activity {
  }
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
   super.onActivityResult(requestCode,resultCode,data);
+  if(requestCode==25&&resultCode==RESULT_OK&&data!=null){Uri uri=data.getData();String name=mediaExport;pool.execute(()->{try(InputStream in=new FileInputStream(MediaStudio.get(this).file(name));OutputStream out=getContentResolver().openOutputStream(uri)){byte[] buffer=new byte[65536];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);emit("file",new JSONObject().put("message","Geração salva no destino escolhido"));}catch(Exception e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}});}
+  if(requestCode==24&&resultCode==RESULT_OK&&data!=null&&data.getExtras()!=null){android.graphics.Bitmap bitmap=(android.graphics.Bitmap)data.getExtras().get("data");if(bitmap!=null)try{File file=new File(getFilesDir(),"workspace/camera-"+System.currentTimeMillis()+".jpg");file.getParentFile().mkdirs();try(OutputStream out=new FileOutputStream(file)){bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,92,out);}emit("file",new JSONObject().put("message","Foto salva no espaço do Forge").put("path",file.getName()));}catch(Exception e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
+  if((requestCode==22||requestCode==23)&&resultCode==RESULT_OK&&data!=null){Uri uri=data.getData();pool.execute(()->{try{
+   if(requestCode==23){try(OutputStream out=getContentResolver().openOutputStream(uri)){out.write(Assistant.get(this).store.exportData().toString(2).getBytes(StandardCharsets.UTF_8));}emit("file",new JSONObject().put("message","Memória e conversas exportadas"));}
+   else{String name="arquivo-importado-"+System.currentTimeMillis();try(android.database.Cursor c=getContentResolver().query(uri,null,null,null,null)){if(c!=null&&c.moveToFirst()){int col=c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);if(col>=0)name=c.getString(col);}}name=new File(name).getName().replaceAll("[^\\p{L}\\p{N}._ -]","_");File dest=new File(getFilesDir(),importKind.equals("model")?"models/"+name:"workspace/"+name);dest.getParentFile().mkdirs();try(InputStream in=getContentResolver().openInputStream(uri);OutputStream out=new FileOutputStream(dest)){byte[] b=new byte[65536];int n;while((n=in.read(b))!=-1)out.write(b,0,n);}if(importKind.equals("model"))getSharedPreferences("assistant",0).edit().putString("local_model",name).commit();emit("file",new JSONObject().put("message","Arquivo importado: "+name).put("path",name));}
+  }catch(Exception e){try{emit("file",new JSONObject().put("error",e.getMessage()));}catch(Exception ignored){}}});}
   if(requestCode==21&&resultCode==RESULT_OK&&data!=null){String id=pendingArtifact;Uri uri=data.getData();pool.execute(()->{
    String msg="Arquivo salvo";
    try(InputStream in=artifact(id);OutputStream out=getContentResolver().openOutputStream(uri)){byte[] b=new byte[65536];int n;while((n=in.read(b))!=-1)out.write(b,0,n);}catch(Exception e){msg="Download falhou: "+e.getMessage();}
    String result=msg;runOnUiThread(()->android.widget.Toast.makeText(this,result,android.widget.Toast.LENGTH_LONG).show());
   });}
  }
- @Override protected void onDestroy(){web.removeJavascriptInterface("Native");web.destroy();pool.shutdownNow();super.onDestroy();}
+ void emit(String kind,JSONObject value){runOnUiThread(()->{if(!isDestroyed())web.evaluateJavascript("window.assistantEvent&&window.assistantEvent("+JSONObject.quote(kind)+","+value+")",null);});}
+ void openCamera(){runOnUiThread(()->{try{startActivityForResult(new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE),24);}catch(Exception e){android.widget.Toast.makeText(this,"Câmera indisponível: "+e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}});}
+ @Override protected void onDestroy(){if(voice!=null)voice.close();web.removeJavascriptInterface("Native");web.destroy();pool.shutdownNow();super.onDestroy();}
 }

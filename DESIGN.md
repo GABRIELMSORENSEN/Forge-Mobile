@@ -1,0 +1,5 @@
+# Forge assistente
+
+Aplicativo Android pessoal em português do Brasil. Tela principal é uma conversa com histórico persistente, inspirada na referência enviada: cinza grafite, texto claro, compositor fixo, seletor de modelo e acesso visível. Tokens: fundo #202123, painel #2b2d31, superfície #34363b, texto #f3f4f6, secundário #afb3bc, destaque #91b9ff. Fonte de sistema Android para texto e monoespaçada para código. Animação curta somente em mensagens, respeitando movimento reduzido.
+
+A conversa é a navegação principal. Configurações, memória e computador usam o mesmo diálogo. Capacidades indisponíveis aparecem com estado e motivo reais. Histórico vem do SQLite, nunca do DOM. Credenciais ficam no Keystore, fora das mensagens. O controle de acesso é armazenado pelo backend e verificado em cada ferramenta. Ações concluídas têm IDs e resultado persistente para retomada sem repetição automática. O modo offline não chama a rede. O modo automático conserva o pedido e os resultados ao trocar de modelo.

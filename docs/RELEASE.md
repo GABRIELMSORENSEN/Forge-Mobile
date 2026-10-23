@@ -1,9 +1,11 @@
-Forge Mobile — prévia 1.0.0
+# Forge 1.1.0-preview.1
 
-APK Android assinado, instalado no Samsung A35 e com integração GitHub verificada no dispositivo.
+Android e PC independentes, com memoria persistente, chat online/offline, voz, agentes locais, ferramentas e estudio de imagens/videos.
 
-Esta é uma prévia: o ambiente remoto precisa ser ativado em **Conexões → GitHub** com um token que tenha `repo` + `workflow`; depois toque **Habilitar execução remota**. A credencial atual não permite publicar workflows. Compilação remota e execução do Codex ainda não foram validadas.
+Os pacotes distribuiveis nao incluem credenciais, memoria pessoal, modelos instalados ou certificados. No aparelho deste usuario, o cofre privado foi preservado durante a atualizacao release. Nunca desinstale nem limpe dados para atualizar preservando memoria.
 
-Vercel precisa de token novo; Supabase precisa ser conectado. O app não substitui todas as capacidades do Codex desktop nem dá acesso irrestrito ao sistema Android.
+Forge-Android.apk: Android arm64, versao 1.1.0, sem depuracao. Forge-PC-Windows.zip: extraia a pasta completa e abra Forge-PC/Forge-PC.exe. Os pesos dos modelos sao instalados separadamente.
 
-Instale `Forge-Mobile.apk`. O pacote não contém credenciais pessoais. Consulte README e docs/VALIDATION.md para capacidades e resultados reais.
+No A35, imagem e video leve passaram. O modo leve anima imagem IA com movimento de camera. Wan generativo passou no PC; no A35 os testes esbarraram na RAM. Voz por nome funciona com o app ativo e permanece experimental; voz fisica do usuario nao foi validada nesta entrega.
+
+Detalhes e limites em VALIDATION.md. A release antiga 1.0.0-preview.1 nao contem estas alteracoes.

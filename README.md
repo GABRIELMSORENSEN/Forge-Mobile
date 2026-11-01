@@ -1,4 +1,4 @@
-# Forge - assistente pessoal
+# Polygon - assistente pessoal
 
 Android e PC independentes: chat com memoria persistente, modelos locais selecionaveis, conta online privada, voz e ferramentas reais. Projeto pessoal independente da OpenAI.
 
@@ -6,12 +6,12 @@ Baixe os pacotes em [Releases](https://github.com/GABRIELMSORENSEN/Forge-Mobile/
 
 ## Usar
 
-- Android: instale `artifacts/Forge-Android.apk`. A instalacao deste usuario foi provisionada por USB; o APK distribuivel nao leva sua credencial nem suas notas.
-- Windows: extraia `artifacts/Forge-PC-Windows.zip` e abra `Forge-PC/Forge-PC.exe`. Preserve a pasta completa. O atalho Forge PC abre a copia local.
+- Android: instale `artifacts/Polygon-Android.apk`. A instalacao deste usuario foi provisionada por USB; o APK distribuivel nao leva sua credencial nem suas notas.
+- Windows: extraia `artifacts/Polygon-PC-Windows.zip` e abra `Polygon-PC/Polygon-PC.exe`. Preserve a pasta completa. O atalho Forge PC abre a copia local.
 - Chat: selecione modelo, acesso e modo offline. Em Configuracoes ficam Memoria, Voz, Contas, Arquivos e Imagens e videos.
 - Modelos: 0.8B, 2B, 4B, 9B e 27B, ou importacao GGUF. Nenhuma selecao garante que o hardware consiga carregar. Ajuste contexto, threads e saida.
 - Contas: tokens GitHub, Vercel e Supabase ficam apenas no dispositivo onde foram configurados. O PC tambem pode usar o login local do GitHub CLI. APIs sao chamadas diretamente; nao ha sincronizacao de credenciais para GitHub Actions.
-- Voz: vozes gratuitas instaladas no sistema. Escolha uma voz offline. Ativacao por Forge enquanto o app esta ativo; no PC o ditado requer Python, sounddevice, faster-whisper e modelo Whisper ja instalado.
+- Voz: vozes gratuitas instaladas no sistema. Escolha uma voz offline. Ativacao por Polygon enquanto o app esta ativo; no PC o ditado requer Python, sounddevice, faster-whisper e modelo Whisper ja instalado.
 - Imagens/videos: modelos baixados separadamente com SHA-256. SD Turbo e Wan executam localmente, sem creditos. Android tambem oferece video leve de imagem IA com movimento de camera; Wan no A35 nao passou por falta de RAM. A opcao de armazenamento reduz RAM e aumenta o tempo. Resolucoes/quadros pequenos servem para validar o motor.
 
 ## Memoria e continuidade
